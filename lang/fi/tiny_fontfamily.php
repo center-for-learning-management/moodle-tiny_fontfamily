@@ -26,10 +26,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['button_fontfamily'] = 'Kirjasinperhe';
+$string['fontfamily:use'] = "Salli lisäosan käyttö";
+$string['fonts'] = "Kirjasinperheet";
+$string['fonts_desc'] = "Lista käytettävissä olevista kirjasinperheistä rivinvaihdolla eroteltuna.";
 $string['menuitem_fontfamily'] = 'Kirjasinperhe';
 $string['pluginname'] = 'Kirjasinperhe-lisäosa';
 $string['privacy:metadata'] = 'Kirjasinperhe-lisäosa ei tallentaa henkilötietoja.';
-$string['fonts'] = "Kirjasinperheet";
 $string['settings'] = "Asetukset";
-$string['fonts_desc'] = "Lista käytettävissä olevista kirjasinperheistä rivinvaihdolla eroteltuna.";
-$string['fontfamily:use'] = "Salli lisäosan käyttö";
