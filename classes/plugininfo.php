@@ -67,7 +67,7 @@ class plugininfo extends plugin implements plugin_with_buttons, plugin_with_conf
      * @return array
      */
     public static function get_plugin_configuration_for_context(
-        $_context: context,
+        context $_context,
         array $_options,
         array $_fpoptions,
         ?\editor_tiny\editor $_editor = null
