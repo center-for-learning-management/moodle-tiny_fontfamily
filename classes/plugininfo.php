@@ -60,13 +60,17 @@ class plugininfo extends plugin implements plugin_with_buttons, plugin_with_conf
      * Get plugin configuration.
      * Currently not in use.
      *
+     * @param context $context The context
+     * @param array $options The options
+     * @param array $fpoptions The filepicker options
+     * @param \editor_tiny\editor|null $editor The editor instance
      * @return array
      */
     public static function get_plugin_configuration_for_context(
-        context $context,
-        array $options,
-        array $fpoptions,
-        ?\editor_tiny\editor $editor = null
+        $_context: context,
+        array $_options,
+        array $_fpoptions,
+        ?\editor_tiny\editor $_editor = null
     ): array {
         $config = [];
         $config['fonts'] = explode("\r\n", get_config('tiny_fontfamily', 'fonts'));
