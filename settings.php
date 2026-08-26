@@ -29,7 +29,6 @@ $ADMIN->add('editortiny', new admin_category($plugin, new lang_string('pluginnam
 
 $settings = new admin_settingpage('tiny_fontfamily_settings', new lang_string('settings', $plugin));
 if ($ADMIN->fulltree) {
-
     $defaults = [
         'Arial',
         'Verdana',
@@ -39,12 +38,15 @@ if ($ADMIN->fulltree) {
         'Georgia',
         'Garamond',
         'Courier New',
-        'Brush Script MT'
+        'Brush Script MT',
     ];
 
     $settings->add(
-        new admin_setting_configtextarea($plugin . '/fonts',
-                new lang_string('fonts', $plugin),
-                new lang_string('fonts_desc', $plugin),
-                implode("\r\n", $defaults), PARAM_TEXT, 80, 10));
+        new admin_setting_configtextarea(
+            $plugin . '/fonts',
+            new lang_string('fonts', $plugin),
+            new lang_string('fonts_desc', $plugin),
+            implode("\r\n", $defaults), PARAM_TEXT, 80, 10
+        )
+    );
 }
