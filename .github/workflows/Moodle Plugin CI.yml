@@ -56,14 +56,11 @@ jobs:
           path: plugin
           persist-credentials: false
 
-
       - name: Setup PHP ${{ matrix.php }}
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
           ini-values: max_input_vars=5000, opcache.enable_cli=1
-          # If you are not using code coverage, keep "none". Otherwise, use "pcov" (Moodle 3.10 and up) or "xdebug".
-          # If you try to use code coverage with "none", it will fallback to phpdbg (which has known problems).
           coverage: none
 
       - name: Initialise moodle-plugin-ci
@@ -129,8 +126,6 @@ jobs:
         env:
           DB: ${{ matrix.database }}
           MOODLE_BRANCH: ${{ matrix.moodle-branch }}
-          # Uncomment this to run Behat tests using the Moodle App.
-          # MOODLE_APP: 'true'
 
       - name: Add custom config .github/moodle-ci/extra-config.php
         run: |
@@ -440,6 +435,40 @@ jobs:
             echo "No plugin-relevant Stylelint changes, skipping commit."
           else
             git commit -m "stylelint --fix: automated SCSS lint fixes"
+          fi
+
+      # NEW: Rebuild AMD assets with Grunt
+      - name: Rebuild assets with Grunt
+        if: ${{ !cancelled() }}
+        run: |
+          cd ${{ github.workspace }}/moodle
+          set +e
+          moodle-plugin-ci grunt --max-lint-warnings 0
+          grunt_exit=$?
+          set -e
+
+          # Grunt exits 1 when files are stale (after rebuilding them).
+          # If it exits with anything else (e.g., 2 for real error), fail the step.
+          if [ $grunt_exit -ne 0 ] && [ $grunt_exit -ne 1 ]; then
+            echo "Grunt failed with unexpected exit code $grunt_exit"
+            exit $grunt_exit
+          fi
+
+          # Check if any files were changed in the Moodle public directory.
+          if [ -z "$(git status --porcelain public/)" ]; then
+            echo "Grunt made no changes."
+          else
+            echo "Grunt modified files."
+            : "${PLUGIN_INSTALL_DIR:?PLUGIN_INSTALL_DIR is not set - did the resolve step fail?}"
+            rsync -av "${{ github.workspace }}/moodle/public/${PLUGIN_INSTALL_DIR}/." "${{ github.workspace }}/plugin/." --exclude='.git'
+
+            cd ${{ github.workspace }}/plugin
+            git add -A
+            if git diff --cached --quiet; then
+              echo "No plugin-relevant changes, skipping commit."
+            else
+              git commit -m "grunt: rebuilt AMD assets"
+            fi
           fi
 
       # Detect if any of the fixers above produced commits
