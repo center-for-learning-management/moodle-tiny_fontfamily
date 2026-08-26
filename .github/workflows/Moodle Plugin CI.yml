@@ -371,11 +371,8 @@ jobs:
 
           # phpcbf fixes the plugin as installed inside the moodle codebase, not
           # the ./plugin checkout, so sync the fixes back before committing.
-          # Guard against an unset/empty PLUGIN_INSTALL_DIR: without this, the
-          # rsync source below would collapse to "moodle/public/." and copy
-          # the entire Moodle core tree into ./plugin.
           : "${PLUGIN_INSTALL_DIR:?PLUGIN_INSTALL_DIR is not set - did the resolve step fail?}"
-          rsync -av "${{ github.workspace }}/moodle/public/${PLUGIN_INSTALL_DIR}/." "${{ github.workspace }}/plugin/." --exclude='.git'
+          rsync -av --delete "${{ github.workspace }}/moodle/public/${PLUGIN_INSTALL_DIR}/." "${{ github.workspace }}/plugin/." --exclude='.git'
 
           cd plugin
           git add -A
@@ -401,7 +398,7 @@ jobs:
           echo "ESLint --fix modified files; ignoring its exit code ($eslint_exit)."
 
           : "${PLUGIN_INSTALL_DIR:?PLUGIN_INSTALL_DIR is not set - did the resolve step fail?}"
-          rsync -av "${{ github.workspace }}/moodle/public/${PLUGIN_INSTALL_DIR}/." "${{ github.workspace }}/plugin/." --exclude='.git'
+          rsync -av --delete "${{ github.workspace }}/moodle/public/${PLUGIN_INSTALL_DIR}/." "${{ github.workspace }}/plugin/." --exclude='.git'
 
           cd ${{ github.workspace }}/plugin
           git add -A
@@ -427,7 +424,7 @@ jobs:
           echo "Stylelint --fix modified files; ignoring its exit code ($stylelint_exit)."
 
           : "${PLUGIN_INSTALL_DIR:?PLUGIN_INSTALL_DIR is not set - did the resolve step fail?}"
-          rsync -av "${{ github.workspace }}/moodle/public/${PLUGIN_INSTALL_DIR}/." "${{ github.workspace }}/plugin/." --exclude='.git'
+          rsync -av --delete "${{ github.workspace }}/moodle/public/${PLUGIN_INSTALL_DIR}/." "${{ github.workspace }}/plugin/." --exclude='.git'
 
           cd ${{ github.workspace }}/plugin
           git add -A
@@ -437,7 +434,7 @@ jobs:
             git commit -m "stylelint --fix: automated SCSS lint fixes"
           fi
 
-      # NEW: Rebuild AMD assets with Grunt
+      # Rebuild AMD assets with Grunt
       - name: Rebuild assets with Grunt
         if: ${{ !cancelled() }}
         run: |
@@ -460,7 +457,8 @@ jobs:
           else
             echo "Grunt modified files."
             : "${PLUGIN_INSTALL_DIR:?PLUGIN_INSTALL_DIR is not set - did the resolve step fail?}"
-            rsync -av "${{ github.workspace }}/moodle/public/${PLUGIN_INSTALL_DIR}/." "${{ github.workspace }}/plugin/." --exclude='.git'
+            # Use --delete to remove files that are no longer generated (e.g., functions.min.js)
+            rsync -av --delete "${{ github.workspace }}/moodle/public/${PLUGIN_INSTALL_DIR}/." "${{ github.workspace }}/plugin/." --exclude='.git'
 
             cd ${{ github.workspace }}/plugin
             git add -A
