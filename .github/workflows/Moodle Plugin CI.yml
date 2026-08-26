@@ -522,7 +522,7 @@ jobs:
           done
 
           # Check if any files were changed in the plugin's installed directory.
-          if [ -z "$(git status --porcelain public/${PLUGIN_INSTALL_DIR}/)" ]; then
+          if [ -z "$(git status --porcelain "public/${PLUGIN_INSTALL_DIR}/")" ]; then
             echo "Grunt made no changes to the plugin."
           else
             echo "Grunt modified plugin files."
