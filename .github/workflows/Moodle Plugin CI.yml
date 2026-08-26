@@ -321,19 +321,10 @@ jobs:
           MOODLE_BRANCH: MOODLE_502_STABLE
 
       # Resolve the plugin's real installed path inside the Moodle codebase once,
-      # so every fixer below syncs fixes back to the right place. Deriving this
-      # from the repo name (e.g. stripping "moodle-" and swapping "_" for "/")
-      # only works for simple component types; it breaks for subplugins such as
-      # tiny_*, block_*, qtype_*, assignsubmission_*, etc. Instead we look up the
-      # plugin's own declared component and find where Moodle actually put it.
+      # so every fixer below syncs fixes back to the right place.
       - name: Resolve installed plugin directory
         if: ${{ !cancelled() }}
         run: |
-          # Read the component name as plain text rather than executing
-          # version.php. Executing it requires a real Moodle bootstrap:
-          # even with MOODLE_INTERNAL defined, plugins commonly reference
-          # constants like MATURITY_STABLE that only exist after Moodle's
-          # full setup.php has run, causing a fatal error here.
           versionphp="${{ github.workspace }}/plugin/version.php"
           component=$(grep -oP "component\s*=\s*['\"]\K[^'\"]+" "$versionphp" | head -n1)
 
@@ -355,8 +346,7 @@ jobs:
           echo "Resolved $component -> public/$plugindir"
 
       # --- Fixers ---
-      # Each fixer commits its own changes (if any) immediately, so the resulting
-      # PR contains separate, individually cherry-pickable commits per tool.
+      # Each fixer commits its own changes (if any) immediately.
       - name: Moodle Code Beautifier and Fixer
         if: ${{ !cancelled() }}
         run: |
@@ -369,8 +359,6 @@ jobs:
             moodle-plugin-ci phpcbf
           fi
 
-          # phpcbf fixes the plugin as installed inside the moodle codebase, not
-          # the ./plugin checkout, so sync the fixes back before committing.
           : "${PLUGIN_INSTALL_DIR:?PLUGIN_INSTALL_DIR is not set - did the resolve step fail?}"
           rsync -av --delete "${{ github.workspace }}/moodle/public/${PLUGIN_INSTALL_DIR}/." "${{ github.workspace }}/plugin/." --exclude='.git'
 
@@ -434,13 +422,14 @@ jobs:
             git commit -m "stylelint --fix: automated SCSS lint fixes"
           fi
 
-      # Rebuild AMD assets with Grunt
+      # Rebuild AMD assets with Grunt and delete obsolete files
       - name: Rebuild assets with Grunt
         if: ${{ !cancelled() }}
         run: |
           cd ${{ github.workspace }}/moodle
           set +e
-          moodle-plugin-ci grunt --max-lint-warnings 0
+          # Run grunt and capture output and exit code
+          output=$(moodle-plugin-ci grunt --max-lint-warnings 0 2>&1)
           grunt_exit=$?
           set -e
 
@@ -448,8 +437,21 @@ jobs:
           # If it exits with anything else (e.g., 2 for real error), fail the step.
           if [ $grunt_exit -ne 0 ] && [ $grunt_exit -ne 1 ]; then
             echo "Grunt failed with unexpected exit code $grunt_exit"
+            echo "$output"
             exit $grunt_exit
           fi
+
+          # Delete files that are no longer generated.
+          # Look for lines like: "File no longer generated and likely should be deleted: amd/build/functions.min.js"
+          echo "$output" | grep -oP "File no longer generated and likely should be deleted: \K[^\s]+" | while read -r file; do
+            fullpath="${{ github.workspace }}/moodle/public/${PLUGIN_INSTALL_DIR}/$file"
+            if [ -f "$fullpath" ]; then
+              echo "Deleting obsolete file: $fullpath"
+              rm -f "$fullpath"
+            else
+              echo "File not found (already deleted?): $fullpath"
+            fi
+          done
 
           # Check if any files were changed in the Moodle public directory.
           if [ -z "$(git status --porcelain public/)" ]; then
@@ -457,7 +459,7 @@ jobs:
           else
             echo "Grunt modified files."
             : "${PLUGIN_INSTALL_DIR:?PLUGIN_INSTALL_DIR is not set - did the resolve step fail?}"
-            # Use --delete to remove files that are no longer generated (e.g., functions.min.js)
+            # Use --delete to remove files that are no longer generated (should now be removed from source)
             rsync -av --delete "${{ github.workspace }}/moodle/public/${PLUGIN_INSTALL_DIR}/." "${{ github.workspace }}/plugin/." --exclude='.git'
 
             cd ${{ github.workspace }}/plugin
